@@ -1,0 +1,18 @@
+{
+    "name": "AD",
+    "rootNamespace": "",
+    "references": [
+        "UniRx",
+        "UniTask",
+        "CGK"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
