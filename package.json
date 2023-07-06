@@ -1,6 +1,6 @@
 {
   "name": "com.suvorov.ad",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "displayName": "AD",
   "description": "This is  package for work with ad",
   "unity": "2022.1",
@@ -12,7 +12,8 @@
   },
   "keywords": [
     "AD",
-    "Fake Ad"
+    "Fake Ad",
+    "IronSource"
   ],
   "author": {
     "name": "suvorov",
