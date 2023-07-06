@@ -36,7 +36,7 @@ namespace AD.Provider
             return UniTask.CompletedTask;
         }
 
-        public async UniTask<ADResult> ShowAD(ADType adType)
+        public async UniTask<ADResult> ShowAD(ADType adType, string result)
         {
             float timeShowing = SelectTimeToShow(adType);
             ADResult showResult = SelectShowResult(adType);

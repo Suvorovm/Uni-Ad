@@ -20,7 +20,8 @@ namespace AD.UI
         private void Awake()
         {
             _closeButton.OnClickAsObservable()
-                .Subscribe(_ => { _subjectAdResult.OnNext(ADResult.AdClosed); });
+                .Subscribe(_ => { _subjectAdResult.OnNext(ADResult.AdClosed); })
+                .AddTo(gameObject);
         }
 
         public void Hide()

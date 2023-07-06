@@ -20,12 +20,15 @@ namespace AD.Service
 
         private IADProvider CreateProvider(ADDescriptor adDescriptor)
         {
-            if (adDescriptor.FakeADDescriptor.Enable)
+#if UNITY_EDITOR
+            return new FakeADProvider();
+#endif
+            if (adDescriptor.IronSourceDescriptor.Enable)
             {
-                return new FakeADProvider();
+                return new IronSourceAdProvider();
             }
 
-            return null;
+            return new FakeADProvider();
         }
 
         public UniTask Init()
@@ -33,9 +36,10 @@ namespace AD.Service
             return _adProvider.Init(_adDescriptor);
         }
 
-        public UniTask<ADResult> ShowAd(ADType adType)
+        public async UniTask<ADResult> ShowAd(ADType adType, string placement)
         {
-            return _adProvider.ShowAD(adType);
+            ADResult adResult = await _adProvider.ShowAD(adType, placement);
+            return adResult;
         }
 
         public void Dispose()

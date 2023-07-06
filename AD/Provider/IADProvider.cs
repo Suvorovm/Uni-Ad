@@ -8,6 +8,6 @@ namespace AD.Provider
     public interface IADProvider : IDisposable
     {
         UniTask Init(ADDescriptor adDescriptor);
-        UniTask<ADResult> ShowAD(ADType adType);
+        UniTask<ADResult> ShowAD(ADType adType, string placement = "");
     }
 }

@@ -6,6 +6,7 @@ namespace AD.Model
     {
         [XmlEnum("notInitialized")] NotInitialized,
         [XmlEnum("failLoad")] FailLoad,
+        [XmlEnum("failShow")] FailShow,
         [XmlEnum("networkError")] NetworkError,
         [XmlEnum("adClosed")] AdClosed,
         [XmlEnum("adNotReady")] AdNotReady,

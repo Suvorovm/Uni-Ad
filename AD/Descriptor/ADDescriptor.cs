@@ -7,5 +7,7 @@ namespace AD.Descriptor
     {
         [XmlElement("fakeAd")]
         public FakeADDescriptor FakeADDescriptor { get; set; }
+        [XmlElement("ironSource")]
+        public IronSourceDescriptor IronSourceDescriptor { get; set; }
     }
 }
