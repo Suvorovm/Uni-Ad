@@ -41,7 +41,7 @@ namespace AD.Provider
             
             if (adDescriptor.FakeADDescriptor.PathToDialog == null)
             {
-                fakeDialogPrefab = AssetDatabase.LoadAssetAtPath<FakeDialogController>(AssetsPathUtils.GetAssetPath() + "FakeDialog.prefab");
+                fakeDialogPrefab = AssetDatabase.LoadAssetAtPath<FakeDialogController>(AssetsPathUtils.GetAssetPath() + "/FakeDialog.prefab");
             }
             else
             {
