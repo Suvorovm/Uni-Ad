@@ -2,7 +2,6 @@
 using AD.Descriptor;
 using AD.Model;
 using Cysharp.Threading.Tasks;
-using IronSource.Scripts;
 using UnityEngine;
 
 namespace AD.Provider
@@ -20,8 +19,8 @@ namespace AD.Provider
         {
             IronSourceEvents.onSdkInitializationCompletedEvent += OnSdkInitializationCompletedEvent;
             _ironSourceDescriptor = adDescriptor.IronSourceDescriptor;
-            IronSourceService.Agent.validateIntegration();
-            IronSourceService.Agent.init(_ironSourceDescriptor.Token);
+            IronSource.Agent.validateIntegration();
+            IronSource.Agent.init(_ironSourceDescriptor.Token);
             _taskCompletionSource = new UniTaskCompletionSource();
             await _taskCompletionSource.Task;
             SubscribeOnEvents();
@@ -78,11 +77,11 @@ namespace AD.Provider
 
         private void TryLoadInterstitial()
         {
-            if (IronSourceService.Agent.isInterstitialReady() || _interstitialRequested)
+            if (IronSource.Agent.isInterstitialReady() || _interstitialRequested)
             {
                 return;
             }
-            IronSourceService.Agent.loadInterstitial();
+            IronSource.Agent.loadInterstitial();
             _interstitialRequested = true;
         }
         
@@ -126,9 +125,9 @@ namespace AD.Provider
 
         private void ShowInterstitial(string placement)
         {
-            if (IronSourceService.Agent.isInterstitialReady())
+            if (IronSource.Agent.isInterstitialReady())
             {
-                IronSourceService.Agent.showInterstitial(placement);
+                IronSource.Agent.showInterstitial(placement);
             }
             else
             {
@@ -139,7 +138,7 @@ namespace AD.Provider
 
         private void ShowRewardVideo(string placement)
         {
-            IronSourceService.Agent.showRewardedVideo(placement);
+            IronSource.Agent.showRewardedVideo(placement);
         }
 
         private void OnSdkInitializationCompletedEvent()
