@@ -3,7 +3,6 @@ using System.Threading;
 using AD.Descriptor;
 using AD.Model;
 using AD.UI;
-using AD.Utils;
 using UniRx;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
