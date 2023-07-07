@@ -4,7 +4,7 @@
     {
         public static string GetAssetPath()
         {
-            return "Packages/com.suvorov.ad/Resources";
+            return "Packages/com.suvorov.ad/AD/Resources";
         }
     }
 }
