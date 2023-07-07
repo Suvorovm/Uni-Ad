@@ -6,7 +6,6 @@ using AD.UI;
 using AD.Utils;
 using UniRx;
 using Cysharp.Threading.Tasks;
-using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -37,17 +36,8 @@ namespace AD.Provider
 
         private void CreateFakeDialog(ADDescriptor adDescriptor)
         {
-            FakeDialogController fakeDialogPrefab;
             
-            if (adDescriptor.FakeADDescriptor.PathToDialog == null)
-            {
-                fakeDialogPrefab = AssetDatabase.LoadAssetAtPath<FakeDialogController>(AssetsPathUtils.GetAssetPath() + "/FakeDialog.prefab");
-            }
-            else
-            {
-                fakeDialogPrefab = Resources.Load<FakeDialogController>(adDescriptor.FakeADDescriptor.PathToDialog);
-            }
-
+            FakeDialogController fakeDialogPrefab = Resources.Load<FakeDialogController>(adDescriptor.FakeADDescriptor.PathToDialog);
             _fakeDialogController = Object.Instantiate(fakeDialogPrefab);
             _fakeDialogController.Hide();
             _fakeDialogController.OnADResult
