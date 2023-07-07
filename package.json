@@ -1,6 +1,6 @@
 {
   "name": "com.suvorov.ad",
-  "version": "0.0.4",
+  "version": "0.0.4-preview1",
   "displayName": "AD",
   "description": "This is  package for work with ad",
   "unity": "2022.1",

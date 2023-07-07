@@ -3,8 +3,10 @@ using System.Threading;
 using AD.Descriptor;
 using AD.Model;
 using AD.UI;
+using AD.Utils;
 using UniRx;
 using Cysharp.Threading.Tasks;
+using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -28,12 +30,28 @@ namespace AD.Provider
             _timeShowingRewardVideo = adDescriptor.FakeADDescriptor.TimeShowingReward;
             _resultShowingInterstitial = adDescriptor.FakeADDescriptor.ResultShowingReward;
             _timeShowingInterstitial = adDescriptor.FakeADDescriptor.TimeShowingInterstitial;
-            FakeDialogController fakeDialogPrefab = Resources.Load<FakeDialogController>(adDescriptor.FakeADDescriptor.PathToDialog);
-            _fakeDialogController= Object.Instantiate(fakeDialogPrefab);
+            CreateFakeDialog(adDescriptor);
+
+            return UniTask.CompletedTask;
+        }
+
+        private void CreateFakeDialog(ADDescriptor adDescriptor)
+        {
+            FakeDialogController fakeDialogPrefab;
+            
+            if (adDescriptor.FakeADDescriptor.PathToDialog == null)
+            {
+                fakeDialogPrefab = AssetDatabase.LoadAssetAtPath<FakeDialogController>(AssetsPathUtils.GetAssetPath() + "FakeDialog.prefab");
+            }
+            else
+            {
+                fakeDialogPrefab = Resources.Load<FakeDialogController>(adDescriptor.FakeADDescriptor.PathToDialog);
+            }
+
+            _fakeDialogController = Object.Instantiate(fakeDialogPrefab);
             _fakeDialogController.Hide();
             _fakeDialogController.OnADResult
                 .Subscribe(_ => { _cancellationTokenSource?.Cancel(); });
-            return UniTask.CompletedTask;
         }
 
         public async UniTask<ADResult> ShowAD(ADType adType, string result)
