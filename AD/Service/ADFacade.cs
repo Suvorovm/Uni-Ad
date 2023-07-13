@@ -12,9 +12,9 @@ namespace AD.Service
         private readonly IADProvider _adProvider;
         private readonly ADDescriptor _adDescriptor;
         
-        public ADFacade(DescriptorService descriptorService)
+        public ADFacade(DescriptorHolder descriptorHolder)
         {
-            _adDescriptor = descriptorService.GetDescriptor<ADDescriptor>();
+            _adDescriptor = descriptorHolder.GetDescriptor<ADDescriptor>();
             _adProvider = CreateProvider(_adDescriptor);
         }
 
