@@ -1,4 +1,5 @@
 ﻿using System.Threading;
+using System.Threading.Tasks;
 using AD.Descriptor;
 using AD.Model;
 using Cysharp.Threading.Tasks;
@@ -9,21 +10,29 @@ namespace AD.Provider
     //ERROR codes https://developers.is.com/ironsource-mobile/ios/supersonic-sdk-error-codes/
     public class IronSourceAdProvider : IADProvider
     {
+        private static bool _initialized; // can't call IronSource.Agent.init(_ironSourceDescriptor.Token) twice
         private UniTaskCompletionSource _taskCompletionSource;
         private UniTaskCompletionSource<ADResult> _adResult;
         private IronSourceDescriptor _ironSourceDescriptor;
         private bool _interstitialRequested;
-        private bool _initialized;
+        
 
         public async UniTask Init(ADDescriptor adDescriptor)
         {
-            IronSourceEvents.onSdkInitializationCompletedEvent += OnSdkInitializationCompletedEvent;
             _ironSourceDescriptor = adDescriptor.IronSourceDescriptor;
+            IronSourceEvents.onSdkInitializationCompletedEvent += OnSdkInitializationCompletedEvent;
+            SubscribeOnEvents();
+
+            if (_initialized)
+            {
+                await UniTask.CompletedTask;
+                return;
+            }
+
             IronSource.Agent.validateIntegration();
             IronSource.Agent.init(_ironSourceDescriptor.Token);
             _taskCompletionSource = new UniTaskCompletionSource();
             await _taskCompletionSource.Task;
-            SubscribeOnEvents();
         }
 
         private void SubscribeOnEvents()
