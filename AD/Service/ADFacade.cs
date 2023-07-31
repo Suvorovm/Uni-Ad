@@ -11,11 +11,17 @@ namespace AD.Service
     {
         private readonly IADProvider _adProvider;
         private readonly ADDescriptor _adDescriptor;
+        private readonly IADAnalytics _adAnalytics;
         
         public ADFacade(DescriptorHolder descriptorHolder)
         {
             _adDescriptor = descriptorHolder.GetDescriptor<ADDescriptor>();
             _adProvider = CreateProvider(_adDescriptor);
+        }
+
+        public ADFacade(DescriptorHolder descriptorHolder, IADAnalytics adAnalytics) : this(descriptorHolder)
+        {
+            _adAnalytics = adAnalytics;
         }
 
         private IADProvider CreateProvider(ADDescriptor adDescriptor)
@@ -39,6 +45,7 @@ namespace AD.Service
         public async UniTask<ADResult> ShowAd(ADType adType, string placement)
         {
             ADResult adResult = await _adProvider.ShowAD(adType, placement);
+            _adAnalytics?.SendAdEvent(placement, adResult, adType);
             return adResult;
         }
 

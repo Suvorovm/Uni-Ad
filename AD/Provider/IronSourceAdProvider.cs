@@ -4,6 +4,7 @@ using AD.Descriptor;
 using AD.Model;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using System;
 
 namespace AD.Provider
 {
@@ -15,7 +16,7 @@ namespace AD.Provider
         private UniTaskCompletionSource<ADResult> _adResult;
         private IronSourceDescriptor _ironSourceDescriptor;
         private bool _interstitialRequested;
-        
+
 
         public async UniTask Init(ADDescriptor adDescriptor)
         {
@@ -32,7 +33,17 @@ namespace AD.Provider
             IronSource.Agent.validateIntegration();
             IronSource.Agent.init(_ironSourceDescriptor.Token);
             _taskCompletionSource = new UniTaskCompletionSource();
-            await _taskCompletionSource.Task;
+
+            int indexCompletedTask =
+                await UniTask.WhenAny(
+                    UniTask.Delay(TimeSpan.FromSeconds(adDescriptor.IronSourceDescriptor.InitTimeOut)),
+                    _taskCompletionSource.Task);
+            if (indexCompletedTask == 0 && adDescriptor.IronSourceDescriptor.ThrowErrorInInit)
+            {
+                throw new TimeoutException("Pluggin init timeout");
+            }
+
+            await Task.CompletedTask;
         }
 
         private void SubscribeOnEvents()
@@ -58,10 +69,10 @@ namespace AD.Provider
             if (error.getCode() == 520)
             {
                 _adResult?.TrySetResult(ADResult.NetworkError);
-            }else if (error.getCode() == 509)
+            }
+            else if (error.getCode() == 509)
             {
                 _adResult?.TrySetResult(ADResult.FailLoad);
-
             }
             else
             {
@@ -90,10 +101,11 @@ namespace AD.Provider
             {
                 return;
             }
+
             IronSource.Agent.loadInterstitial();
             _interstitialRequested = true;
         }
-        
+
         private void OnFailLoadEvent(IronSourceError error, IronSourceAdInfo info)
         {
             _adResult?.TrySetResult(ADResult.FailShow);
@@ -115,7 +127,7 @@ namespace AD.Provider
             {
                 return ADResult.NotInitialized;
             }
-            
+
             _adResult?.TrySetCanceled(new CancellationToken(true));
             _adResult = new UniTaskCompletionSource<ADResult>();
             if (adType == ADType.Reward)
@@ -165,7 +177,7 @@ namespace AD.Provider
         {
             IronSourceEvents.onSdkInitializationCompletedEvent -= OnSdkInitializationCompletedEvent;
 
-            
+
             IronSourceRewardedVideoEvents.onAdClosedEvent -= OnRewardedVideoAdClosedEvent;
             IronSourceRewardedVideoEvents.onAdRewardedEvent -= OnRewardedVideoEvent;
             IronSourceRewardedVideoEvents.onAdShowFailedEvent -= OnFailLoadEvent;
