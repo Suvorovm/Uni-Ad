@@ -1,52 +1,74 @@
 ﻿using System;
 using System.Threading;
-using AD.Descriptor;
-using AD.Model;
-using AD.UI;
+using Ad.Descriptor;
+using Ad.Model;
+using Ad.UI;
 using UniRx;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace AD.Provider
+namespace Ad.Provider
 {
-    public class FakeADProvider : IADProvider
+    public class FakeAdProvider : IAdProvider
     {
+        private readonly FakeAdDescriptor _fakeAdDescriptor;
+        
         private float _timeOutLoadingRewardVideo;
         private float _timeShowingRewardVideo;
         private float _timeShowingInterstitial;
-        private ADResult _resultRewardVideoShowed;
-        private ADResult _resultShowingInterstitial;
+        private AdResult _resultRewardVideoShowed;
+        private AdResult _resultShowingInterstitial;
 
         private FakeDialogController _fakeDialogController;
         private CancellationTokenSource _cancellationTokenSource;
 
-        public UniTask Init(ADDescriptor adDescriptor)
-        {
-            _timeOutLoadingRewardVideo = adDescriptor.FakeADDescriptor.TimeOutLoadingAd;
-            _resultRewardVideoShowed = adDescriptor.FakeADDescriptor.ResultShowingReward;
-            _timeShowingRewardVideo = adDescriptor.FakeADDescriptor.TimeShowingReward;
-            _resultShowingInterstitial = adDescriptor.FakeADDescriptor.ResultShowingReward;
-            _timeShowingInterstitial = adDescriptor.FakeADDescriptor.TimeShowingInterstitial;
-            CreateFakeDialog(adDescriptor);
+        private GameObject _banner;
 
+        public FakeAdProvider(FakeAdDescriptor adDescriptor)
+        {
+            _fakeAdDescriptor = adDescriptor;
+        }
+        public UniTask Init()
+        {
+            _timeOutLoadingRewardVideo = _fakeAdDescriptor.TimeOutLoadingAd;
+            _resultRewardVideoShowed = _fakeAdDescriptor.ResultShowingReward;
+            _timeShowingRewardVideo = _fakeAdDescriptor.TimeShowingReward;
+            _resultShowingInterstitial = _fakeAdDescriptor.ResultShowingReward;
+            _timeShowingInterstitial = _fakeAdDescriptor.TimeShowingInterstitial;
+            CreateFakeDialog();
+            CreateBanner();
+            
             return UniTask.CompletedTask;
         }
 
-        private void CreateFakeDialog(ADDescriptor adDescriptor)
+        private void CreateBanner()
         {
-            
-            FakeDialogController fakeDialogPrefab = Resources.Load<FakeDialogController>(adDescriptor.FakeADDescriptor.PathToDialog);
+            _banner = GameObject.Instantiate(Resources.Load<GameObject>(_fakeAdDescriptor.PathToBanner));
+            _banner.SetActive(false);
+        }
+
+        private void CreateFakeDialog()
+        {
+            FakeDialogController fakeDialogPrefab = Resources.Load<FakeDialogController>(_fakeAdDescriptor.PathToDialog);
             _fakeDialogController = Object.Instantiate(fakeDialogPrefab);
             _fakeDialogController.Hide();
             _fakeDialogController.OnADResult
-                .Subscribe(_ => { _cancellationTokenSource?.Cancel(); });
+                .Subscribe(_ =>
+                {
+                    _cancellationTokenSource?.Cancel();
+                });
         }
 
-        public async UniTask<ADResult> ShowAD(ADType adType, string result)
+        public async UniTask<AdResult> ShowAd(AdType adType, string result)
         {
+            if (adType == AdType.BannerBottom || adType == AdType.BannerTop)
+            {
+                ShowBanner();
+                return AdResult.Successfully;
+            }
             float timeShowing = SelectTimeToShow(adType);
-            ADResult showResult = SelectShowResult(adType);
+            AdResult showResult = SelectShowResult(adType);
             _fakeDialogController.Show(timeShowing, adType);
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
@@ -61,20 +83,31 @@ namespace AD.Provider
             {
                 Debug.Log(ex.Message);
                 _fakeDialogController.Hide();
-                return ADResult.AdClosed;
+                return AdResult.AdClosed;
             }
 
             return showResult;
         }
 
-        private ADResult SelectShowResult(ADType adType)
+        private void ShowBanner()
         {
-            return adType == ADType.Reward ? _resultRewardVideoShowed : _resultShowingInterstitial;
+            _banner.SetActive(true);
         }
 
-        private float SelectTimeToShow(ADType adType)
+        public void DestroyBanner()
         {
-            return adType == ADType.Reward ? _timeShowingRewardVideo : _timeShowingInterstitial;
+            Debug.LogWarning("Destroy banner");
+            _banner.SetActive(false);
+        }
+
+        private AdResult SelectShowResult(AdType adType)
+        {
+            return adType == AdType.Reward ? _resultRewardVideoShowed : _resultShowingInterstitial;
+        }
+
+        private float SelectTimeToShow(AdType adType)
+        {
+            return adType == AdType.Reward ? _timeShowingRewardVideo : _timeShowingInterstitial;
         }
 
         public void Dispose()

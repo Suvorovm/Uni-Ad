@@ -1,9 +1,10 @@
-﻿namespace AD.Model
+﻿namespace Ad.Model
 {
-    public enum ADType
+    public enum AdType
     {
         Reward,
         Interstitial,
-        Banner
+        BannerBottom,
+        BannerTop
     }
 }

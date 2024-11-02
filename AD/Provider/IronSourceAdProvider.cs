@@ -1,26 +1,40 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using AD.Descriptor;
-using AD.Model;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using System;
+using System.Collections.Generic;
+using Ad.Descriptor;
+using Ad.Model;
+using Ad.Service;
+using CGK.Utils;
 
-namespace AD.Provider
+namespace Ad.Provider
 {
     //ERROR codes https://developers.is.com/ironsource-mobile/ios/supersonic-sdk-error-codes/
-    public class IronSourceAdProvider : IADProvider
+    public class IronSourceAdProvider : IAdProvider
     {
-        private static bool _initialized; // can't call IronSource.Agent.init(_ironSourceDescriptor.Token) twice
+        private static bool
+            _initialized; // can't call IronSource.Agent.init(_ironSourceDescriptor.Token) twice in one App
+
+        
+
+        private readonly IronSourceDescriptor _ironSourceDescriptor;
+        private readonly IAdAnalytics _adAnalytics;
+
         private UniTaskCompletionSource _taskCompletionSource;
-        private UniTaskCompletionSource<ADResult> _adResult;
-        private IronSourceDescriptor _ironSourceDescriptor;
+        private UniTaskCompletionSource<AdResult> _adResult;
         private bool _interstitialRequested;
+        private bool _rewardRequested;
 
-
-        public async UniTask Init(ADDescriptor adDescriptor)
+        public IronSourceAdProvider(IronSourceDescriptor ironSourceDescriptor, IAdAnalytics adAnalytics)
         {
-            _ironSourceDescriptor = adDescriptor.IronSourceDescriptor;
+            _ironSourceDescriptor = ironSourceDescriptor;
+            _adAnalytics = adAnalytics;
+        }
+
+        public async UniTask Init()
+        {
             IronSourceEvents.onSdkInitializationCompletedEvent += OnSdkInitializationCompletedEvent;
             SubscribeOnEvents();
 
@@ -30,33 +44,95 @@ namespace AD.Provider
                 return;
             }
 
+            if (_ironSourceDescriptor.TestSuitCase)
+            {
+                IronSource.Agent.setMetaData("is_test_suite", "enable");
+            }
+
             IronSource.Agent.validateIntegration();
             IronSource.Agent.init(_ironSourceDescriptor.Token);
             _taskCompletionSource = new UniTaskCompletionSource();
 
             int indexCompletedTask =
                 await UniTask.WhenAny(
-                    UniTask.Delay(TimeSpan.FromSeconds(adDescriptor.IronSourceDescriptor.InitTimeOut)),
+                    UniTask.Delay(TimeSpan.FromSeconds(_ironSourceDescriptor.InitTimeOut)),
                     _taskCompletionSource.Task);
-            if (indexCompletedTask == 0 && adDescriptor.IronSourceDescriptor.ThrowErrorInInit)
+            if (indexCompletedTask == 0 && _ironSourceDescriptor.ThrowErrorInInit)
             {
-                throw new TimeoutException("Pluggin init timeout");
+                throw new TimeoutException("init timeout reached");
             }
 
             await Task.CompletedTask;
         }
 
+        public void DestroyBanner()
+        {
+            IronSource.Agent.destroyBanner();
+        }
+
+        public async UniTask<AdResult> ShowAd(AdType adType, string placement)
+        {
+            Debug.Log($"ShowAD {adType} {placement}");
+            if (!_initialized)
+            {
+                return AdResult.NotInitialized;
+            }
+
+            _adResult?.TrySetCanceled(new CancellationToken(true));
+            _adResult = new UniTaskCompletionSource<AdResult>();
+
+            switch (adType)
+            {
+                case AdType.Reward:
+                    ShowRewardVideo(placement);
+                    break;
+                case AdType.Interstitial:
+                    ShowInterstitial(placement);
+                    break;
+                case AdType.BannerBottom:
+                    ShowBanner(IronSourceBannerPosition.BOTTOM, placement);
+                    break;
+                case AdType.BannerTop:
+                    ShowBanner(IronSourceBannerPosition.TOP, placement);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(adType), adType, null);
+            }
+
+            AdResult adResultTask = await _adResult.Task;
+            _adResult = null;
+            return adResultTask;
+        }
+
+        private void ShowBanner(IronSourceBannerPosition bannerPosition, string placement)
+        {
+            IronSource.Agent.loadBanner(IronSourceBannerSize.BANNER, bannerPosition, placement);
+        }
+
         private void SubscribeOnEvents()
         {
             IronSourceRewardedVideoEvents.onAdClosedEvent += OnRewardedVideoAdClosedEvent;
-            IronSourceRewardedVideoEvents.onAdRewardedEvent += OnRewardedVideoEvent;
+            IronSourceRewardedVideoEvents.onAdRewardedEvent += OnRewardedVideoFinishedSuccessfully;
             IronSourceRewardedVideoEvents.onAdShowFailedEvent += OnFailLoadEvent;
-
+            IronSourceRewardedVideoEvents.onAdLoadFailedEvent += LoadFailedEvent;
+            IronSourceRewardedVideoEvents.onAdReadyEvent += OnLoadFinished;
 
             IronSourceInterstitialEvents.onAdClosedEvent += OnInterstitialClosed;
             IronSourceInterstitialEvents.onAdLoadFailedEvent += OnInterstitialLoadFailed;
             IronSourceInterstitialEvents.onAdShowFailedEvent += OnInterstitialShowedFailed;
             IronSourceInterstitialEvents.onAdReadyEvent += OnInterstitialReady;
+
+            IronSourceEvents.onImpressionDataReadyEvent += ImpressionDataReadyEvent;
+        }
+
+        private void OnLoadFinished(IronSourceAdInfo obj)
+        {
+            Debug.LogWarning("LoadFailedEvent " + obj);
+        }
+
+        private void LoadFailedEvent(IronSourceError obj)
+        {
+            Debug.LogWarning("LoadFailedEvent " + obj);
         }
 
         private void OnInterstitialReady(IronSourceAdInfo obj)
@@ -68,15 +144,15 @@ namespace AD.Provider
         {
             if (error.getCode() == 520)
             {
-                _adResult?.TrySetResult(ADResult.NetworkError);
+                _adResult?.TrySetResult(AdResult.NetworkError);
             }
             else if (error.getCode() == 509)
             {
-                _adResult?.TrySetResult(ADResult.FailLoad);
+                _adResult?.TrySetResult(AdResult.FailLoad);
             }
             else
             {
-                _adResult?.TrySetResult(ADResult.FailShow);
+                _adResult?.TrySetResult(AdResult.FailShow);
             }
 
             TryLoadInterstitial();
@@ -85,13 +161,14 @@ namespace AD.Provider
 
         private void OnInterstitialLoadFailed(IronSourceError obj)
         {
-            TryLoadInterstitial();
+            Debug.LogWarning("OnInterstitialLoadFailed " + obj);
+            _interstitialRequested = false;
         }
 
         private void OnInterstitialClosed(IronSourceAdInfo obj)
         {
             TryLoadInterstitial();
-            _adResult?.TrySetResult(ADResult.AdClosed);
+            _adResult?.TrySetResult(AdResult.Successfully);
             _adResult = null;
         }
 
@@ -102,46 +179,21 @@ namespace AD.Provider
                 return;
             }
 
-            IronSource.Agent.loadInterstitial();
             _interstitialRequested = true;
+            IronSource.Agent.loadInterstitial();
         }
 
         private void OnFailLoadEvent(IronSourceError error, IronSourceAdInfo info)
         {
-            _adResult?.TrySetResult(ADResult.FailShow);
+            Debug.LogWarning("OnFailLoadEvent " + error + " " + info);
+            _adResult?.TrySetResult(AdResult.FailShow);
             _adResult = null;
         }
 
-        private void OnRewardedVideoEvent(IronSourcePlacement placement, IronSourceAdInfo adInfo)
+        private void OnRewardedVideoFinishedSuccessfully(IronSourcePlacement placement, IronSourceAdInfo adInfo)
         {
-            Debug.Log("Showed reward");
-            _adResult?.TrySetResult(ADResult.Successfully);
+            _adResult?.TrySetResult(AdResult.Successfully);
             _adResult = null;
-        }
-
-        public async UniTask<ADResult> ShowAD(ADType adType, string placement)
-        {
-            Debug.Log("ShowAD");
-
-            if (!_initialized)
-            {
-                return ADResult.NotInitialized;
-            }
-
-            _adResult?.TrySetCanceled(new CancellationToken(true));
-            _adResult = new UniTaskCompletionSource<ADResult>();
-            if (adType == ADType.Reward)
-            {
-                ShowRewardVideo(placement);
-            }
-            else
-            {
-                ShowInterstitial(placement);
-            }
-
-            ADResult adResultTask = await _adResult.Task;
-            _adResult = null;
-            return adResultTask;
         }
 
         private void ShowInterstitial(string placement)
@@ -153,24 +205,57 @@ namespace AD.Provider
             else
             {
                 TryLoadInterstitial();
-                _adResult?.TrySetResult(ADResult.AdNotReady);
+                _adResult?.TrySetResult(AdResult.AdNotReady);
             }
         }
 
         private void ShowRewardVideo(string placement)
         {
-            IronSource.Agent.showRewardedVideo(placement);
+            if (IronSource.Agent.isRewardedVideoAvailable())
+            {
+                IronSource.Agent.showRewardedVideo(placement);
+            }
+            else
+            {
+                _adResult.TrySetResult(AdResult.AdNotReady);
+            }
         }
 
         private void OnSdkInitializationCompletedEvent()
         {
-            Debug.Log("On AD SdkInitializationCompleted");
-            _taskCompletionSource.TrySetResult();
+            TryLoadInterstitial();
+            _taskCompletionSource?.TrySetResult();
             _initialized = true;
-            if (_ironSourceDescriptor.PreInitInterstitial)
+        }
+
+        private void OnRewardedVideoAdClosedEvent(IronSourceAdInfo info)
+        {
+            _adResult?.TrySetResult(AdResult.AdClosed);
+            _adResult = null;
+        }
+
+        private void ImpressionDataReadyEvent(IronSourceImpressionData impressionData)
+        {
+            if (impressionData == null)
             {
-                TryLoadInterstitial();
+                return;
             }
+
+            double impressionDataRevenue = impressionData.revenue ?? 0;
+            string cpmEncrypted = impressionData.encryptedCPM.IsNullOrEmpty() ? "none" : impressionData.encryptedCPM;
+            Dictionary<string, object> parameters = new Dictionary<string, object>()
+            {
+                { IronSourceAdConst.IRON_SOURCE_AD_SOURCE, impressionData.adNetwork },
+                { IronSourceAdConst.IRON_SOURCE_AD_FORMAT, impressionData.adUnit },
+                { IronSourceAdConst.IRON_SOURCE_AD_INSTANCE_NAME, impressionData.instanceName },
+                { IronSourceAdConst.IRON_SOURCE_AD_PLACEMENT, impressionData.placement },
+                { IronSourceAdConst.IRON_SOURCE_AD_COUNTRY, impressionData.country },
+                { IronSourceAdConst.IRON_SOURCE_AD_PRECISION, impressionData.precision },
+                { IronSourceAdConst.IRON_SOURCE_AD_LIFETIME_REVENUE, impressionData.lifetimeRevenue ?? 0},
+                { IronSourceAdConst.IRON_SOURCE_AD_ENCRYPTED_CPM, cpmEncrypted },
+                { IronSourceAdConst.IRON_SOURCE_AD_REVENUE, impressionDataRevenue },
+            };
+            _adAnalytics.AdRevenue(parameters);
         }
 
         public void Dispose()
@@ -179,20 +264,18 @@ namespace AD.Provider
 
 
             IronSourceRewardedVideoEvents.onAdClosedEvent -= OnRewardedVideoAdClosedEvent;
-            IronSourceRewardedVideoEvents.onAdRewardedEvent -= OnRewardedVideoEvent;
+            IronSourceRewardedVideoEvents.onAdRewardedEvent -= OnRewardedVideoFinishedSuccessfully;
             IronSourceRewardedVideoEvents.onAdShowFailedEvent -= OnFailLoadEvent;
-
+            IronSourceRewardedVideoEvents.onAdLoadFailedEvent -= LoadFailedEvent;
+            IronSourceRewardedVideoEvents.onAdReadyEvent -= OnLoadFinished;
 
             IronSourceInterstitialEvents.onAdClosedEvent -= OnInterstitialClosed;
             IronSourceInterstitialEvents.onAdLoadFailedEvent -= OnInterstitialLoadFailed;
             IronSourceInterstitialEvents.onAdShowFailedEvent -= OnInterstitialShowedFailed;
             IronSourceInterstitialEvents.onAdReadyEvent -= OnInterstitialReady;
-        }
 
-        private void OnRewardedVideoAdClosedEvent(IronSourceAdInfo info)
-        {
-            _adResult?.TrySetResult(ADResult.AdClosed);
-            _adResult = null;
+
+            IronSourceEvents.onImpressionDataReadyEvent -= ImpressionDataReadyEvent;
         }
     }
 }

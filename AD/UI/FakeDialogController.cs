@@ -1,10 +1,10 @@
 ﻿using System;
-using AD.Model;
+using Ad.Model;
 using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace AD.UI
+namespace Ad.UI
 {
     public class FakeDialogController : MonoBehaviour
     {
@@ -13,14 +13,14 @@ namespace AD.UI
         [SerializeField]
         private Text _timeToClose;
 
-        private readonly Subject<ADResult> _subjectAdResult = new Subject<ADResult>();
+        private readonly Subject<AdResult> _subjectAdResult = new Subject<AdResult>();
         private CompositeDisposable _compositeDisposable;
-        public IObservable<ADResult> OnADResult => _subjectAdResult.AsObservable();
+        public IObservable<AdResult> OnADResult => _subjectAdResult.AsObservable();
 
         private void Awake()
         {
             _closeButton.OnClickAsObservable()
-                .Subscribe(_ => { _subjectAdResult.OnNext(ADResult.AdClosed); })
+                .Subscribe(_ => { _subjectAdResult.OnNext(AdResult.AdClosed); })
                 .AddTo(gameObject);
         }
 
@@ -31,7 +31,7 @@ namespace AD.UI
             _compositeDisposable = null;
         }
 
-        public void Show(float showingTime, ADType adType)
+        public void Show(float showingTime, AdType adType)
         {
             gameObject.SetActive(true);
             _timeToClose.text = $"{adType} {showingTime}";

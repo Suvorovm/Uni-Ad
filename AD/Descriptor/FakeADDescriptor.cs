@@ -1,22 +1,33 @@
 ﻿using System.Xml.Serialization;
-using AD.Model;
+using Ad.Model;
 
-namespace AD.Descriptor
+namespace Ad.Descriptor
 {
     [XmlType("fakeAd")]
-    public class FakeADDescriptor
+    public class FakeAdDescriptor : IProviderDescriptor
     {
-        [XmlAttribute("timoOutLoadingAd")] public float TimeOutLoadingAd { get; set; }
-        [XmlAttribute("timeShowingReward")] public float TimeShowingReward { get; set; }
-        [XmlAttribute("resultShowingReward")] public ADResult ResultShowingReward { get; set; }
+        [XmlAttribute("timoOutLoadingAd")] 
+        public float TimeOutLoadingAd { get; set; }
+        
+        [XmlAttribute("timeShowingReward")] 
+        public float TimeShowingReward { get; set; }
+        
+        [XmlAttribute("resultShowingReward")] 
+        public AdResult ResultShowingReward { get; set; }
 
         [XmlAttribute("resultShowingInterstitial")]
-        public ADResult InterstitialInterstitial { get; set; }
+        public AdResult InterstitialInterstitial { get; set; }
 
         [XmlAttribute("timeShowingInterstitial")]
         public float TimeShowingInterstitial { get; set; }
 
-        [XmlAttribute("pathToDialog")] public string PathToDialog { get; set; }
-        [XmlAttribute("enable")] public bool Enable { get; set; }
+        [XmlAttribute("pathToDialog")] 
+        public string PathToDialog { get; set; }
+        
+        [XmlAttribute("pathToBanner")]
+        public string PathToBanner { get; set; }
+        
+        [XmlAttribute("enable")] 
+        public bool Enable { get; set; }
     }
 }

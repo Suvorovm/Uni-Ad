@@ -1,12 +1,13 @@
 ﻿using System.Xml.Serialization;
 
-namespace AD.Descriptor
+namespace Ad.Descriptor
 {
     [XmlRoot("adConfig")]
-    public class ADDescriptor
+    public class AdDescriptor
     {
         [XmlElement("fakeAd")]
-        public FakeADDescriptor FakeADDescriptor { get; set; }
+        public FakeAdDescriptor FakeADDescriptor { get; set; }
+        
         [XmlElement("ironSource")]
         public IronSourceDescriptor IronSourceDescriptor { get; set; }
     }

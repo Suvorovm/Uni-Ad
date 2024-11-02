@@ -1,13 +1,13 @@
 ﻿using System;
-using AD.Descriptor;
-using AD.Model;
+using Ad.Model;
 using Cysharp.Threading.Tasks;
 
-namespace AD.Provider
+namespace Ad.Provider
 {
-    public interface IADProvider : IDisposable
+    public interface IAdProvider : IDisposable
     {
-        UniTask Init(ADDescriptor adDescriptor);
-        UniTask<ADResult> ShowAD(ADType adType, string placement = "");
+        UniTask Init();
+        UniTask<AdResult> ShowAd(AdType adType, string placement = "");
+        void DestroyBanner();
     }
 }

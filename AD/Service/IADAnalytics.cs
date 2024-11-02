@@ -1,9 +1,14 @@
-﻿using AD.Model;
+﻿using System.Collections.Generic;
+using Ad.Model;
 
-namespace AD.Service
+namespace Ad.Service
 {
-    public interface IADAnalytics
+    public interface IAdAnalytics
     {
-        void SendAdEvent(string placement, ADResult result, ADType adType);
+        void SendAdEvent(string placement, AdResult result, AdType adType);
+
+        void SendEvent(string eventName, Dictionary<string, object> analyticsParams);
+
+        void AdRevenue(Dictionary<string, object> analyticsParams);
     }
 }
