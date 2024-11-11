@@ -5,7 +5,7 @@
         "UniRx",
         "UniTask",
         "CGK",
-        "IronSource"
+        "Unity.LevelPlay"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
